@@ -884,6 +884,7 @@ virCHProcessPrepareDomain(virDomainObj *vm)
  * @driver: pointer to driver structure
  * @vm: pointer to virtual machine structure
  * @reason: reason for switching vm to running state
+ * @flags: VIR_CH_PROCESS_START_* flags
  *
  * Starts Cloud-Hypervisor listening on a local socket
  *
@@ -990,6 +991,12 @@ virCHProcessStart(virCHDriver *driver,
     } else {
         virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
     }
+
+    if (virCHProcessFinishStartup(driver, vm,
+                                  !(flags & VIR_CH_PROCESS_START_PAUSED),
+                                  reason,
+                                  VIR_DOMAIN_PAUSED_MIGRATION) < 0)
+        goto cleanup;
 
     return 0;
 

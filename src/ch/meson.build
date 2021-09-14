@@ -17,6 +17,8 @@ ch_driver_sources = [
   'ch_process.h',
   'ch_hostdev.c',
   'ch_hostdev.h',
+  'ch_migration.c',
+  'ch_migration.h',
 ]
 
 driver_source_files += files(ch_driver_sources)

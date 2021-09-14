@@ -33,6 +33,11 @@ int virCHProcessStop(virCHDriver *driver,
 
 int virCHProcessSetupVcpu(virDomainObj *vm,
                           unsigned int vcpuid);
+/*
+typedef enum {
+    VIR_CH_PROCESS_START_PAUSED = 1 << 0,
+} 
+*/
 
 int virCHProcessStartRestore(virCHDriver *driver,
                          virDomainObj *vm,
