@@ -246,11 +246,15 @@ static int
 virCHMonitorBuildDiskJson(virJSONValue *disks, virDomainDiskDef *diskdef)
 {
     g_autoptr(virJSONValue) disk = virJSONValueNewObject();
-
+    virStorageType actualType;
+    
     if (!diskdef->src)
         return -1;
 
-    switch (diskdef->src->type) {
+    virDomainDiskTranslateSourcePool(diskdef);
+    actualType = virStorageSourceGetActualType(diskdef->src);
+
+    switch (actualType) {
     case VIR_STORAGE_TYPE_FILE:
         if (!diskdef->src->path) {
             virReportError(VIR_ERR_INVALID_ARG, "%s",
