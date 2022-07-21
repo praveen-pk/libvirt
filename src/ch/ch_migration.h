@@ -37,20 +37,20 @@
 
 char *
 chDomainMigrationSrcBegin(virConnectPtr conn,
-                          virDomainObjPtr vm,
+                          virDomainObj *vm,
                           const char *xmlin,
                           char **cookieout,
                           int *cookieoutlen);
 
-virDomainDefPtr
-chDomainMigrationAnyPrepareDef(virCHDriverPtr driver,
+virDomainDef *
+chDomainMigrationAnyPrepareDef(virCHDriver *driver,
                                const char *dom_xml,
                                const char *dname,
                                char **origname);
 
 int
 chDomainMigrationDstPrepare(virConnectPtr dconn,
-                            virDomainDefPtr *def,
+                            virDomainDef **def,
                             const char *cookiein,
                             int cookieinlen,
                             char **cookieout,
@@ -60,8 +60,8 @@ chDomainMigrationDstPrepare(virConnectPtr dconn,
                             const char *origname);
 
 int
-chDomainMigrationSrcPerform(virCHDriverPtr driver,
-                            virDomainObjPtr vm,
+chDomainMigrationSrcPerform(virCHDriver *driver,
+                            virDomainObj *vm,
                             const char *dom_xml,
                             const char *dconnuri,
                             const char *uri_str,
@@ -70,12 +70,12 @@ chDomainMigrationSrcPerform(virCHDriverPtr driver,
 
 virDomainPtr
 chDomainMigrationDstFinish(virConnectPtr dconn,
-                           virDomainObjPtr vm,
+                           virDomainObj *vm,
                            unsigned int flags,
                            int cancelled);
 
 int
-chDomainMigrationSrcConfirm(virCHDriverPtr driver,
-                            virDomainObjPtr vm,
+chDomainMigrationSrcConfirm(virCHDriver *driver,
+                            virDomainObj *vm,
                             unsigned int flags,
                             int cancelled);

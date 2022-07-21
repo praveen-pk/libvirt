@@ -144,3 +144,4 @@ virCHMonitorBuildNetJson(virDomainNetDef *netdef,
 int virCHMonitorBuildRestoreJson(virDomainDef *vmdef,
                                  const char *from,
                                  char **jsonstr);
+size_t virCHMonitorRefreshThreadInfo(virCHMonitor *mon);

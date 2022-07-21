@@ -31,6 +31,8 @@ int virCHProcessStop(virCHDriver *driver,
                      virDomainObj *vm,
                      virDomainShutoffReason reason);
 
+int virCHProcessSetupThreads(virDomainObj *vm);
+
 int virCHProcessSetupVcpu(virDomainObj *vm,
                           unsigned int vcpuid);
 /*
@@ -48,3 +50,11 @@ virCHProcessSetupIOThreads(virDomainObj *vm);
 
 int
 virCHProcessSetup(virDomainObj *vm);
+void
+chProcessReconnectAll(virCHDriver *driver);
+
+int virCHProcessFinishStartup(virCHDriver *driver,
+                              virDomainObj *vm,
+                              bool startCPUs,
+                              virDomainRunningReason reason,
+                              virDomainPausedReason pausedReason);

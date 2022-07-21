@@ -33,6 +33,7 @@
 
 VIR_LOG_INIT("ch.ch_domain");
 
+
 void
 virCHDomainRemoveInactive(virCHDriver *driver,
                           virDomainObj *vm)

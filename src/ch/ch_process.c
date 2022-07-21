@@ -323,7 +323,7 @@ virCHProcessSetupPid(virDomainObj *vm,
 
 static int
 virCHProcessSetupIOThread(virDomainObj *vm,
-                          virDomainIOThreadInfo *iothread)
+                          virDomainIOThreadInfoPtr iothread)
 {
     virCHDomainObjPrivate *priv = vm->privateData;
 
@@ -993,7 +993,7 @@ virCHProcessStart(virCHDriver *driver,
     }
 
     if (virCHProcessFinishStartup(driver, vm,
-                                  !(flags & VIR_CH_PROCESS_START_PAUSED),
+                                  !(flags & VIR_DOMAIN_START_PAUSED),
                                   reason,
                                   VIR_DOMAIN_PAUSED_MIGRATION) < 0)
         goto cleanup;
