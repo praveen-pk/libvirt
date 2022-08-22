@@ -208,6 +208,21 @@ chDomainMigrationDstPrepare(virConnectPtr dconn,
     virCHDriver *driver = dconn->privateData;
     chMigrationCookiePtr mig = NULL;
     virDomainObj *vm = NULL;
+    virCommand *cmd;
+    virCHDomainObjPrivate *priv;
+    virCommand *chRemote;
+    virCommand *socat;
+    unsigned short port = 0;
+    const char *incFormat= "%s:%s:%d";
+    g_autofree char *hostname = NULL;
+    int sleepAmount = 1;
+    virCHDriverConfig *cfg = virCHDriverGetConfig(driver);
+    g_autofree char *recv_sock_path = NULL;
+
+    (void) uri_in;
+    (void) cookieout;
+    (void) cookieoutlen;
+    (void) origname;
 
     if (chMigrationEatCookie(cookiein, cookieinlen, &mig) < 0)
         goto cleanup;
@@ -222,19 +237,52 @@ chDomainMigrationDstPrepare(virConnectPtr dconn,
     //if (virCHDomainObjBeginJob(vm, VIR_JOB_MODIFY) < 0)
     //    goto cleanup;
 
-    (void) def;
-    (void) uri_in;
-    (void) uri_out;
-    (void) cookieout;
-    (void) cookieoutlen;
-    (void) origname;
+    //get uri_out
+    if (virPortAllocatorAcquire(driver->migrationPorts, &port) < 0)
+         goto cleanup;
+    if ((hostname = virGetHostname()) == NULL)
+        goto cleanup;
+    *uri_out = g_strdup_printf(incFormat, "tcp", hostname, port);
+    VIR_DEBUG("Generated uri_out=%s", *uri_out);
 
     if (virCHProcessStart(driver, vm, 0, VIR_DOMAIN_START_PAUSED) < 0)
         goto cleanup;
 
-   // virCHDomainObjEndJob(vm);
 
+    //ch-remote command
+    recv_sock_path = g_strdup_printf("%s/%s-migr-recv", cfg->stateDir, vm->def->name);
+    cmd = virCommandNew("ch-remote");
+    virCommandAddArgPair(cmd, "--api-socket",g_strdup_printf("%s/%s-socket", cfg->stateDir, vm->def->name));
+    virCommandAddArg(cmd, "receive-migration");
+    virCommandAddArg(cmd,g_strdup_printf("unix:%s",recv_sock_path));
+    chRemote = cmd;
+
+    //socat command
+    cmd = virCommandNew("socat");
+    virCommandAddArg(cmd, g_strdup_printf("TCP-LISTEN:%d,reuseaddr", port));
+    virCommandAddArg(cmd, g_strdup_printf("UNIX-CLIENT:%s", recv_sock_path));
+    socat = cmd;
+
+    if (virCommandRunAsync(chRemote, NULL) < 0)
+        return -1;
+
+    while(access(recv_sock_path, F_OK) != 0){
+            int i = 0;
+            sleep(sleepAmount);
+            i++;
+    }
+
+    if (virCommandRunAsync(socat, NULL) < 0)
+        return -1;
+
+    //store cmds, wait for them in finish phase so that they clean up
+    priv = CH_DOMAIN_PRIVATE(vm);
+    priv->chRemote = chRemote;
+    priv->socat = socat;
+
+    virDomainObjEndJob(vm);
     chMigrationCookieFree(mig);
+    virDomainObjEndAPI(&vm);
 
     return 0;
 

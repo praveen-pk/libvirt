@@ -879,6 +879,43 @@ virCHProcessPrepareDomain(virDomainObj *vm)
     return 0;
 }
 
+int virCHProcessFinishStartup(virCHDriver *driver,
+    virDomainObj *vm,
+    bool startCPUs,
+    virDomainRunningReason reason,
+    virDomainPausedReason pausedReason)
+{
+virCHDomainObjPrivate *priv = vm->privateData;
+g_autoptr(virCHDriverConfig) cfg = virCHDriverGetConfig(driver);
+int ret = -1;
+
+if (startCPUs) {
+VIR_DEBUG("Starting domain CPUs");
+if (virCHMonitorBootVM(priv->monitor, NULL) < 0) {
+virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+ _("failed to boot guest VM"));
+goto error;
+}
+
+if (virCHProcessSetup(vm) < 0)
+    goto error;
+
+
+
+virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
+} else {
+virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, pausedReason);
+}
+
+if (virDomainObjSave(vm, driver->xmlopt, cfg->stateDir) < 0)
+goto error;
+
+ret = 0;
+
+error:
+return ret;
+}
+
 /**
  * virCHProcessStart:
  * @driver: pointer to driver structure
@@ -992,6 +1029,8 @@ virCHProcessStart(virCHDriver *driver,
         virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
     }
 
+    //TODO: Check if this is still relevant, this could be merged into existing
+    // support for starting Paused VMs.
     if (virCHProcessFinishStartup(driver, vm,
                                   !(flags & VIR_DOMAIN_START_PAUSED),
                                   reason,

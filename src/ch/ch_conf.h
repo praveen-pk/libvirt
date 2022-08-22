@@ -26,6 +26,8 @@
 #include "ch_capabilities.h"
 #include "virebtables.h"
 #include "object_event.h"
+#include "virportallocator.h"
+#include "vircommand.h"
 
 #define CH_DRIVER_NAME "CH"
 #define CH_CMD "cloud-hypervisor"
@@ -71,6 +73,9 @@ struct _virCHDriver
 
     /* Immutable pointer, self-locking APIs */
     virDomainObjList *domains;
+
+    /* Immutable pointer, immutable object */
+    virPortAllocatorRange *migrationPorts;
 
     /* Cloud-Hypervisor version */
     int version;
