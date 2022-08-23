@@ -66,6 +66,7 @@ chDomainMigrationDstPrepare(virConnectPtr dconn,
 int
 chDomainMigrationSrcPerform(virCHDriver *driver,
                             virDomainObj *vm,
+                            virDomainDef **def,
                             const char *dom_xml,
                             const char *dconnuri,
                             const char *uri_str,

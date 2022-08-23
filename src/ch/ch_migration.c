@@ -299,12 +299,21 @@ cleanup:
 int
 chDomainMigrationSrcPerform(virCHDriver *driver,
                             virDomainObj *vm,
+                            virDomainDef **def,
                             const char *dom_xml,
                             const char *dconnuri,
                             const char *uri_str,
                             const char *dname,
                             unsigned int flags)
 {
+    virCommand *cmd;
+    virCommand *socat;
+    int sleepAmount = 1;
+    int ret = 0;
+    virCHDriverConfig *cfg = virCHDriverGetConfig(driver);
+    g_autofree char *send_sock_path = NULL;
+
+    (void) def;
     (void) driver;
     (void) vm;
     (void) dom_xml;
@@ -313,7 +322,39 @@ chDomainMigrationSrcPerform(virCHDriver *driver,
     (void) dname;
     (void) flags;
 
-    return -1;
+    if (virCHDomainObjBeginJob(vm, VIR_JOB_MODIFY) < 0)
+        return -1;
+
+    send_sock_path = g_strdup_printf("%s/%s-migr-send", cfg->stateDir, vm->def->name);
+    cmd = virCommandNew("socat");
+    virCommandAddArg(cmd, g_strdup_printf("UNIX-LISTEN:%s,reuseaddr", send_sock_path));
+    virCommandAddArg(cmd, uri_str);
+    socat = cmd;
+
+    if (virCommandRunAsync(cmd, NULL) < 0)
+        return -1;
+
+    while(access(send_sock_path, F_OK) != 0){
+            int i = 0;
+            sleep(sleepAmount);
+            i++;
+    }
+
+    cmd = virCommandNew("ch-remote");
+    virCommandAddArgPair(cmd, "--api-socket", g_strdup_printf("%s/%s-socket", cfg->stateDir, vm->def->name));
+    virCommandAddArg(cmd, "send-migration");
+    virCommandAddArg(cmd, g_strdup_printf("unix:%s", send_sock_path));
+
+    if (virCommandRun(cmd, NULL) < 0)
+        return -1;
+
+    if (virCommandWait(socat, &ret) < 0)
+        return -1;
+
+    virCHDomainObjEndJob(vm);
+    virDomainObjEndAPI(&vm);
+    return 0;
+
 }
 
 int

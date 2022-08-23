@@ -2480,9 +2480,9 @@ chDomainMigratePerform3Params(virDomainPtr dom,
     if (virDomainMigratePerform3ParamsEnsureACL(dom->conn, vm->def) < 0)
         goto cleanup;
 
-    ret = chDomainMigrationSrcPerform(driver, vm, dom_xml, dconnuri, uri,
+    ret = chDomainMigrationSrcPerform(driver, vm, &vm->def, dom_xml, dconnuri, uri,
                                       dname, 0);
-
+    
     (void) cookiein;
     (void) cookieinlen;
     (void) cookieout;
