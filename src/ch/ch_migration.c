@@ -322,7 +322,7 @@ chDomainMigrationSrcPerform(virCHDriver *driver,
     (void) dname;
     (void) flags;
 
-    if (virCHDomainObjBeginJob(vm, VIR_JOB_MODIFY) < 0)
+    if (virDomainObjBeginJob(vm, VIR_JOB_MODIFY) < 0)
         return -1;
 
     send_sock_path = g_strdup_printf("%s/%s-migr-send", cfg->stateDir, vm->def->name);
@@ -351,7 +351,7 @@ chDomainMigrationSrcPerform(virCHDriver *driver,
     if (virCommandWait(socat, &ret) < 0)
         return -1;
 
-    virCHDomainObjEndJob(vm);
+    virDomainObjEndJob(vm);
     virDomainObjEndAPI(&vm);
     return 0;
 
