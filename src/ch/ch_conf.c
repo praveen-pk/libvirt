@@ -32,6 +32,8 @@
 #include "ch_domain.h"
 
 #define VIR_FROM_THIS VIR_FROM_CH
+#define CH_MIGRATION_PORT_MIN 49152
+#define CH_MIGRATION_PORT_MAX 49215
 
 VIR_LOG_INIT("ch.ch_conf");
 
@@ -134,6 +136,9 @@ virCHDriverConfigNew(bool privileged)
         return NULL;
 
     cfg->cgroupControllers = -1; /* Auto detect */
+
+    cfg->migrationPortMin = CH_MIGRATION_PORT_MIN;
+    cfg->migrationPortMax = CH_MIGRATION_PORT_MAX;
 
     if (privileged) {
         if (virGetUserID(CH_USER, &cfg->user) < 0)
