@@ -357,6 +357,48 @@ chDomainMigrationSrcPerform(virCHDriver *driver,
 
 }
 
+virDomainPtr
+chDomainMigrationDstFinish(virCHDriver *driver,
+                           virConnectPtr dconn,
+                           virDomainObj *vm,
+                           unsigned int flags,
+                           int cancelled)
+{
+    virDomainPtr dom = NULL;
+    bool startCPUs = true;
+    virDomainRunningReason runningReason = 2;
+    virDomainPausedReason pausedReason = 2;
+    virCHDomainObjPrivate *priv = CH_DOMAIN_PRIVATE(vm);
+    int ret = 0;
+
+
+    (void) driver;
+    (void) vm;
+    (void) flags;
+    (void) cancelled;
+
+    if (virDomainObjBeginJob(vm, VIR_JOB_MODIFY) < 0)
+        return NULL;
+
+    if (virCommandWait(priv->chRemote, &ret) < 0 || virCommandWait(priv->socat, &ret) < 0)
+        goto error;
+
+    if(virCHProcessFinishStartup(driver, vm, startCPUs, runningReason, pausedReason) < 0)
+        return NULL;
+
+    dom = virGetDomain(dconn, vm->def->name, vm->def->uuid, vm->def->id);
+
+
+    virDomainObjEndJob(vm);
+    virDomainObjEndAPI(&vm);
+    return dom;
+
+    error:
+    virDomainObjEndJob(vm);
+    virDomainObjEndAPI(&vm);
+    return NULL;
+}
+
 int
 chDomainMigrationSrcConfirm(virCHDriver *driver,
                             virDomainObj *vm,

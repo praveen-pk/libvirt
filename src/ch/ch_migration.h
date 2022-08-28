@@ -74,7 +74,8 @@ chDomainMigrationSrcPerform(virCHDriver *driver,
                             unsigned int flags);
 
 virDomainPtr
-chDomainMigrationDstFinish(virConnectPtr dconn,
+chDomainMigrationDstFinish(virCHDriver *driver,
+                           virConnectPtr dconn,
                            virDomainObj *vm,
                            unsigned int flags,
                            int cancelled);

@@ -2507,6 +2507,10 @@ chDomainMigrateFinish3Params(virConnectPtr dconn,
                              unsigned int flags,
                              int cancelled)
 {
+    virCHDriver *driver = dconn->privateData;
+    virDomainObj *vm;
+    const char *dname = NULL;
+
     (void) dconn;
     (void) params;
     (void) nparams;
@@ -2516,7 +2520,38 @@ chDomainMigrateFinish3Params(virConnectPtr dconn,
     (void) cookieoutlen;
     (void) flags;
     (void) cancelled;
-    return NULL;
+
+    virCheckFlags(CH_MIGRATION_FLAGS, NULL);
+
+    if (virTypedParamsValidate(params, nparams, CH_MIGRATION_PARAMETERS) < 0)
+        return NULL;
+
+    if (virTypedParamsGetString(params, nparams,
+                                VIR_MIGRATE_PARAM_DEST_NAME,
+                                &dname) < 0)
+        return NULL;
+
+    if (!dname) {
+        virReportError(VIR_ERR_NO_DOMAIN, "%s", _("missing domain name"));
+        return NULL;
+    }
+
+    vm = virDomainObjListFindByName(driver->domains, dname);
+
+    if (!vm) {
+        virReportError(VIR_ERR_NO_DOMAIN,
+                       _("no domain with matching name '%s'"), dname);
+        return NULL;
+    }
+
+    if (virDomainMigrateFinish3ParamsEnsureACL(dconn, vm->def) < 0) {
+        virDomainObjEndAPI(&vm);
+        return NULL;
+    }
+
+    return chDomainMigrationDstFinish(driver, dconn, vm,
+                                          flags, cancelled);
+
 }
 
 static int

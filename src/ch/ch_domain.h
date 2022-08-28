@@ -24,7 +24,10 @@
 #include "ch_monitor.h"
 #include "virchrdev.h"
 #include "vircgroup.h"
-#include "virdomainjob.h"
+#include "vircommand.h"
+
+/* Give up waiting for mutex after 30 seconds */
+#define CH_JOB_WAIT_TIME (1000ull * 30)
 
 /* Only 1 job is allowed at any time
  * A job includes *all* ch.so api, even those just querying
