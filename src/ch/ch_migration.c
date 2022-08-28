@@ -405,10 +405,11 @@ chDomainMigrationSrcConfirm(virCHDriver *driver,
                             unsigned int flags,
                             int cancelled)
 {
-    (void) driver;
-    (void) vm;
+    virDomainShutoffReason reason = 4;
     (void) flags;
     (void) cancelled;
 
-    return -1;
+    virCHProcessStop(driver, vm, reason);
+
+    return 0;
 }
