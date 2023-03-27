@@ -461,7 +461,7 @@ virCHMonitorBuildVMJson(virDomainDef *vmdef,
 
     if (!(*jsonstr = virJSONValueToString(content, false)))
         return -1;
-
+    VIR_WARN("Cloud-Hypervisor JSON = %s", virJSONValueToString(content, false));
     return 0;
 }
 
@@ -561,6 +561,11 @@ virCHMonitorNew(virDomainObj *vm, const char *socketdir)
 
     virCommandAddArg(cmd, "--api-socket");
     virCommandAddArgFormat(cmd, "fd=%d", socket_fd);
+    virCommandAddArg(cmd, "-v");
+    virCommandAddArg(cmd, "-v");
+    virCommandAddArg(cmd, "-v");
+    virCommandAddArg(cmd, "--log-file");
+    virCommandAddArg(cmd, "/var/log/clh_dom0_test.log");
     virCommandPassFD(cmd, socket_fd, VIR_COMMAND_PASS_FD_CLOSE_PARENT);
 
     /* launch Cloud-Hypervisor socket */
