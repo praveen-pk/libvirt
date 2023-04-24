@@ -108,6 +108,7 @@ struct _virCHMonitor {
         size_t buf_fill_sz;
     } event_buffer;
 
+    char *pidfile;
     pid_t pid;
 
     virDomainObj *vm;

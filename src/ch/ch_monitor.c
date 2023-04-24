@@ -38,6 +38,8 @@
 #include "virjson.h"
 #include "virlog.h"
 #include "virstring.h"
+#include "virpidfile.h"
+
 
 #define VIR_FROM_THIS VIR_FROM_CH
 
@@ -643,6 +645,9 @@ virCHMonitorNew(virDomainObj *vm, virCHDriverConfig *cfg, int logfile)
     virCommandSetOutputFD(cmd, &logfile);
     virCommandSetErrorFD(cmd, &logfile);
     virCommandNonblockingFDs(cmd);
+    mon->pidfile = virPidFileBuildPath(cfg->stateDir, vm->def->name);
+    virCommandSetPidFile(cmd, mon->pidfile);
+    virCommandDaemonize(cmd);
     virCommandSetUmask(cmd, 0x002);
     socket_fd = chMonitorCreateSocket(mon->socketpath);
     if (socket_fd < 0) {
@@ -660,7 +665,7 @@ virCHMonitorNew(virDomainObj *vm, virCHDriverConfig *cfg, int logfile)
     virCommandAddArgFormat(cmd, "path=%s", mon->eventmonitorpath);
 
     /* launch Cloud-Hypervisor socket */
-    if (virCommandRunAsync(cmd, &mon->pid) < 0)
+    if (virCommandRun(cmd, NULL) < 0)
         return NULL;
 
     /* open the reader end of fifo before start Event Handler */
@@ -682,6 +687,13 @@ virCHMonitorNew(virDomainObj *vm, virCHDriverConfig *cfg, int logfile)
     }
     mon->eventmonitorfd = event_monitor_fd;
     VIR_DEBUG("%s: Opened the event monitor FIFO(%s)", vm->def->name, mon->eventmonitorpath);
+     if (virPidFileReadPath(mon->pidfile, &mon->pid) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed to read PID file"));
+        return NULL;
+    }
+    /* get a curl handle */
+    mon->handle = curl_easy_init();
 
     /* now has its own reference */
     mon->vm = virObjectRef(vm);
@@ -725,6 +737,13 @@ void virCHMonitorClose(virCHMonitor *mon)
                      mon->socketpath, g_strerror(errno));
         }
         g_clear_pointer(&mon->socketpath, g_free);
+    }
+    if (mon->pidfile) {
+        if (virFileRemove(mon->pidfile, -1, -1) < 0) {
+            VIR_WARN("Unable to remove CH PID file '%s'",
+                     mon->pidfile);
+        }
+        g_free(mon->pidfile);
     }
 
     virCHStopEventHandler(mon);
