@@ -617,10 +617,7 @@ virCHMonitorNew(virDomainObj *vm, const char *socketdir)
                              socketdir);
         return NULL;
     }
-    for (i = 0; i < priv->tapfdSize; i++) {
-        virCommandPassFD(cmd, priv->tapfd[i],
-                         VIR_COMMAND_PASS_FD_CLOSE_PARENT);
-    }
+
 
     cmd = virCommandNew(vm->def->emulator);
     mon->pidfile = virPidFileBuildPath(socketdir, vm->def->name);
@@ -643,6 +640,11 @@ virCHMonitorNew(virDomainObj *vm, const char *socketdir)
     virCommandAddArg(cmd, "--log-file");
     virCommandAddArg(cmd, "/var/log/clh_dom0_test.log");
     virCommandPassFD(cmd, socket_fd, VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+
+    for (i = 0; i < priv->tapfdSize; i++) {
+        virCommandPassFD(cmd, priv->tapfd[i],
+                         VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+    }
 
     /* launch Cloud-Hypervisor socket */
     if (virCommandRun(cmd, NULL) < 0)
