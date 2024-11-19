@@ -38,6 +38,7 @@
 #include "virstring.h"
 #include "ch_interface.h"
 #include "ch_hostdev.h"
+#include "ch_logcontext.h"
 
 #define VIR_FROM_THIS VIR_FROM_CH
 
@@ -49,12 +50,13 @@ VIR_LOG_INIT("ch.ch_process");
 
 static virCHMonitor *
 virCHProcessConnectMonitor(virCHDriver *driver,
-                           virDomainObj *vm)
+                           virDomainObj *vm,
+                           int logfile)
 {
     virCHMonitor *monitor = NULL;
     virCHDriverConfig *cfg = virCHDriverGetConfig(driver);
 
-    monitor = virCHMonitorNew(vm, cfg);
+    monitor = virCHMonitorNew(vm, cfg, logfile);
 
     virObjectUnref(cfg);
     return monitor;
@@ -889,6 +891,8 @@ virCHProcessStart(virCHDriver *driver,
     virCHDomainObjPrivate *priv = vm->privateData;
     g_autoptr(virCHDriverConfig) cfg = virCHDriverGetConfig(priv->driver);
     g_autofree int *nicindexes = NULL;
+    g_autoptr(chLogContext) logCtxt = NULL;
+    int logfile = -1;
     size_t nnicindexes = 0;
 
     if (virDomainObjIsActive(vm)) {
@@ -900,7 +904,13 @@ virCHProcessStart(virCHDriver *driver,
     if (virCHProcessStartValidate(driver, vm) < 0) {
         return -1;
     }
+    VIR_DEBUG("Creating domain log file");
+    if (!(logCtxt = chLogContextNew(driver, vm, vm->def->name))) {
+        virLastErrorPrefixMessage("%s", _("can't connect to virtlogd"));
+        goto cleanup;
+    }
 
+    logfile = chLogContextGetWriteFD(logCtxt);
     if (virCHProcessPrepareDomain(vm) < 0) {
         return -1;
     }
@@ -910,7 +920,7 @@ virCHProcessStart(virCHDriver *driver,
 
     if (!priv->monitor) {
         /* And we can get the first monitor connection now too */
-        if (!(priv->monitor = virCHProcessConnectMonitor(driver, vm))) {
+        if (!(priv->monitor = virCHProcessConnectMonitor(driver, vm, logfile))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("failed to create connection to CH socket"));
             goto cleanup;
@@ -950,7 +960,7 @@ virCHProcessStart(virCHDriver *driver,
     if (virDomainInterfaceStartDevices(vm->def) < 0)
         return -1;
 
-    if (virCHMonitorBootVM(priv->monitor) < 0) {
+    if (virCHMonitorBootVM(priv->monitor, logCtxt) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("failed to boot guest VM"));
         goto cleanup;
@@ -1050,7 +1060,7 @@ virCHProcessStartRestore(virCHDriver *driver, virDomainObj *vm, const char *from
 
     if (!priv->monitor) {
         /* Get the first monitor connection if not already */
-        if (!(priv->monitor = virCHProcessConnectMonitor(driver, vm))) {
+        if (!(priv->monitor = virCHProcessConnectMonitor(driver, vm, -1))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("failed to create connection to CH socket"));
             goto cleanup;

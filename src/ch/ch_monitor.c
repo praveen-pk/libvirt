@@ -38,7 +38,6 @@
 #include "virstring.h"
 #include "virpidfile.h"
 
-
 #define VIR_FROM_THIS VIR_FROM_CH
 
 VIR_LOG_INIT("ch.ch_monitor");
@@ -58,7 +57,7 @@ static int virCHMonitorOnceInit(void)
 VIR_ONCE_GLOBAL_INIT(virCHMonitor);
 
 int virCHMonitorShutdownVMM(virCHMonitor *mon);
-int virCHMonitorPutNoContent(virCHMonitor *mon, const char *endpoint);
+int virCHMonitorPutNoContent(virCHMonitor *mon, const char *endpoint, chLogContext *logCtxt);
 
 static int
 virCHMonitorBuildCPUJson(virJSONValue *content, virDomainDef *vmdef)
@@ -538,7 +537,7 @@ chMonitorCreateSocket(const char *socket_path)
 }
 
 virCHMonitor *
-virCHMonitorNew(virDomainObj *vm, virCHDriverConfig *cfg)
+virCHMonitorNew(virDomainObj *vm, virCHDriverConfig *cfg, int logfile)
 {
     g_autoptr(virCHMonitor) mon = NULL;
     g_autoptr(virCommand) cmd = NULL;
@@ -577,6 +576,12 @@ virCHMonitorNew(virDomainObj *vm, virCHDriverConfig *cfg)
     mon->pidfile = virPidFileBuildPath(socketdir, vm->def->name);
     virCommandSetPidFile(cmd, mon->pidfile);
     virCommandDaemonize(cmd);
+    //mon->pidfile = virPidFileBuildPath(socketdir, vm->def->name);
+    //virCommandSetPidFile(cmd, mon->pidfile);
+    virCommandSetOutputFD(cmd, &logfile);
+    virCommandSetErrorFD(cmd, &logfile);
+    virCommandNonblockingFDs(cmd);
+    //virCommandDaemonize(cmd);
     virCommandSetUmask(cmd, 0x002);
     socket_fd = chMonitorCreateSocket(mon->socketpath);
     if (socket_fd < 0) {
@@ -685,32 +690,7 @@ virCHMonitorCurlPerform(CURL *handle)
     return responseCode;
 }
 
-int
-virCHMonitorPutNoContent(virCHMonitor *mon, const char *endpoint)
-{
-    VIR_LOCK_GUARD lock = virObjectLockGuard(mon);
-    g_autofree char *url = NULL;
-    int responseCode = 0;
-    int ret = -1;
 
-    url = g_strdup_printf("%s/%s", URL_ROOT, endpoint);
-
-    /* reset all options of a libcurl session handle at first */
-    curl_easy_reset(mon->handle);
-
-    curl_easy_setopt(mon->handle, CURLOPT_UNIX_SOCKET_PATH, mon->socketpath);
-    curl_easy_setopt(mon->handle, CURLOPT_URL, url);
-    curl_easy_setopt(mon->handle, CURLOPT_UPLOAD, 1L);
-    curl_easy_setopt(mon->handle, CURLOPT_HTTPHEADER, NULL);
-    curl_easy_setopt(mon->handle, CURLOPT_INFILESIZE, 0L);
-
-    responseCode = virCHMonitorCurlPerform(mon->handle);
-
-    if (responseCode == 200 || responseCode == 204)
-        ret = 0;
-
-    return ret;
-}
 
 struct curl_data {
     char *content;
@@ -778,6 +758,44 @@ virCHMonitorGet(virCHMonitor *mon, const char *endpoint, virJSONValue **response
     g_free(data.content);
     /* reset the libcurl handle to avoid leaking a stack pointer to data */
     curl_easy_reset(mon->handle);
+
+    return ret;
+}
+
+int
+virCHMonitorPutNoContent(virCHMonitor *mon, const char *endpoint, chLogContext *logCtxt)
+{
+    VIR_LOCK_GUARD lock = virObjectLockGuard(mon);
+    g_autofree char *url = NULL;
+    int responseCode = 0;
+    int ret = -1;
+    struct curl_data data = {0};
+    struct curl_slist *headers = NULL;
+
+    url = g_strdup_printf("%s/%s", URL_ROOT, endpoint);
+
+    /* reset all options of a libcurl session handle at first */
+    curl_easy_reset(mon->handle);
+
+
+    curl_easy_setopt(mon->handle, CURLOPT_UNIX_SOCKET_PATH, mon->socketpath);
+    curl_easy_setopt(mon->handle, CURLOPT_URL, url);
+    curl_easy_setopt(mon->handle, CURLOPT_UPLOAD, 1L);
+    curl_easy_setopt(mon->handle, CURLOPT_INFILESIZE, 0L);
+
+    headers = curl_slist_append(headers, "Accept: application/json");
+    curl_easy_setopt(mon->handle, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(mon->handle, CURLOPT_WRITEFUNCTION, curl_callback);
+    curl_easy_setopt(mon->handle, CURLOPT_WRITEDATA, (void *)&data);
+
+    responseCode = virCHMonitorCurlPerform(mon->handle);
+
+    data.content = g_realloc(data.content, data.size + 1);
+    data.content[data.size] = 0;
+    chLogContextWrite(logCtxt, "Curl Response : %s", data.content);
+
+    if (responseCode == 200 || responseCode == 204)
+        ret = 0;
 
     return ret;
 }
@@ -877,7 +895,7 @@ virCHMonitorGetThreadInfo(virCHMonitor *mon,
 int
 virCHMonitorShutdownVMM(virCHMonitor *mon)
 {
-    return virCHMonitorPutNoContent(mon, URL_VMM_SHUTDOWN);
+    return virCHMonitorPutNoContent(mon, URL_VMM_SHUTDOWN, NULL);
 }
 
 int
@@ -917,33 +935,33 @@ virCHMonitorCreateVM(virCHDriver *driver, virCHMonitor *mon)
 }
 
 int
-virCHMonitorBootVM(virCHMonitor *mon)
+virCHMonitorBootVM(virCHMonitor *mon, chLogContext *logCtxt)
 {
-    return virCHMonitorPutNoContent(mon, URL_VM_BOOT);
+    return virCHMonitorPutNoContent(mon, URL_VM_BOOT, logCtxt);
 }
 
 int
 virCHMonitorShutdownVM(virCHMonitor *mon)
 {
-    return virCHMonitorPutNoContent(mon, URL_VM_SHUTDOWN);
+    return virCHMonitorPutNoContent(mon, URL_VM_SHUTDOWN, NULL);
 }
 
 int
 virCHMonitorRebootVM(virCHMonitor *mon)
 {
-    return virCHMonitorPutNoContent(mon, URL_VM_REBOOT);
+    return virCHMonitorPutNoContent(mon, URL_VM_REBOOT, NULL);
 }
 
 int
 virCHMonitorSuspendVM(virCHMonitor *mon)
 {
-    return virCHMonitorPutNoContent(mon, URL_VM_Suspend);
+    return virCHMonitorPutNoContent(mon, URL_VM_Suspend, NULL);
 }
 
 int
 virCHMonitorResumeVM(virCHMonitor *mon)
 {
-    return virCHMonitorPutNoContent(mon, URL_VM_RESUME);
+    return virCHMonitorPutNoContent(mon, URL_VM_RESUME, NULL);
 }
 
 int
