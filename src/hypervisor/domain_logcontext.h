@@ -19,14 +19,18 @@
 #pragma once
 
 #include <glib-object.h>
-#include "qemu_conf.h"
 #include "logging/log_manager.h"
+#include "virconftypes.h"
+#include "domain_conf.h"
 
 #define DOMAIN_TYPE_LOG_CONTEXT domain_log_context_get_type()
 G_DECLARE_FINAL_TYPE(domainLogContext, domain_log_context, DOMAIN, LOG_CONTEXT, GObject);
 
-domainLogContext *domainLogContextNew(virQEMUDriver *driver,
+domainLogContext *domainLogContextNew(bool stdioLogD,
+                                      char *logDir,
+                                      const char *driver_name,
                                       virDomainObj *vm,
+                                      bool privileged,
                                       const char *basename);
 int domainLogContextWrite(domainLogContext *ctxt,
                           const char *fmt, ...) G_GNUC_PRINTF(2, 3);

@@ -23,6 +23,8 @@
 #include "virlog.h"
 #include "virstring.h"
 #include "virutil.h"
+#include "virfile.h"
+#include "virerror.h"
 
 #include <fcntl.h>
 
@@ -78,26 +80,28 @@ domainLogContextFinalize(GObject *object)
 
 
 domainLogContext *
-domainLogContextNew(virQEMUDriver *driver,
+domainLogContextNew(bool stdioLogD,
+                    char *logDir,
+                    const char *driver_name,
                     virDomainObj *vm,
+                    bool privileged,
                     const char *basename)
 {
-    g_autoptr(virQEMUDriverConfig) cfg = virQEMUDriverGetConfig(driver);
     domainLogContext *ctxt = DOMAIN_LOG_CONTEXT(g_object_new(DOMAIN_TYPE_LOG_CONTEXT, NULL));
 
-    VIR_DEBUG("Context new %p stdioLogD=%d", ctxt, cfg->stdioLogD);
+    VIR_DEBUG("Context new %p stdioLogD=%d", ctxt, stdioLogD);
     ctxt->writefd = -1;
     ctxt->readfd = -1;
 
-    ctxt->path = g_strdup_printf("%s/%s.log", cfg->logDir, basename);
+    ctxt->path = g_strdup_printf("%s/%s.log", logDir, basename);
 
-    if (cfg->stdioLogD) {
-        ctxt->manager = virLogManagerNew(driver->privileged);
+    if (stdioLogD) {
+        ctxt->manager = virLogManagerNew(privileged);
         if (!ctxt->manager)
             goto error;
 
         ctxt->writefd = virLogManagerDomainOpenLogFile(ctxt->manager,
-                                                       "qemu",
+                                                       driver_name,
                                                        vm->def->uuid,
                                                        vm->def->name,
                                                        ctxt->path,
@@ -121,7 +125,7 @@ domainLogContextNew(virQEMUDriver *driver,
         /* For unprivileged startup we must truncate the file since
          * we can't rely on logrotate. We don't use O_TRUNC since
          * it is better for SELinux policy if we truncate afterwards */
-        if (!driver->privileged &&
+        if (!privileged &&
             ftruncate(ctxt->writefd, 0) < 0) {
             virReportSystemError(errno, _("failed to truncate %1$s"),
                                  ctxt->path);
