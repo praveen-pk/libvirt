@@ -1177,6 +1177,7 @@ qemuNbdkitProcessStart(qemuNbdkitProcess *proc,
                        virQEMUDriver *driver)
 {
     g_autoptr(virCommand) cmd = NULL;
+    g_autoptr(virQEMUDriverConfig) cfg = virQEMUDriverGetConfig(driver);
     int rc;
     int exitstatus = 0;
     g_autofree char *errbuf = NULL;
@@ -1200,7 +1201,10 @@ qemuNbdkitProcessStart(qemuNbdkitProcess *proc,
     if (!(cmd = qemuNbdkitProcessBuildCommand(proc)))
         return -1;
 
-    if (!(logContext = domainLogContextNew(driver, vm, basename))) {
+    if (!(logContext = domainLogContextNew(cfg->stdioLogD, cfg->logDir,
+                                           QEMU_DRIVER_NAME,
+                                           vm, driver->privileged,
+                                           basename))) {
         virLastErrorPrefixMessage("%s", _("can't connect to virtlogd"));
         return -1;
     }

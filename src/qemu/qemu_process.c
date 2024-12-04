@@ -4755,8 +4755,7 @@ qemuLogOperation(virDomainObj *vm,
         return;
 
     if (domainLogContextWrite(logCtxt,
-                              "%s: %s %s, qemu version: %d.%d.%d%s, kernel: %s,
-                              hostname: %s\n",
+                              "%s: %s %s, qemu version: %d.%d.%d%s, kernel: %s, hostname: %s\n",
                               timestamp, msg, VIR_LOG_VERSION_STRING,
                               (qemuVersion / 1000000) % 1000,
                               (qemuVersion / 1000) % 1000,
@@ -7816,7 +7815,10 @@ qemuProcessLaunch(virConnectPtr conn,
     hookData.cfg = cfg;
 
     VIR_DEBUG("Creating domain log file");
-    if (!(logCtxt = domainLogContextNew(driver, vm, vm->def->name))) {
+    if (!(logCtxt = domainLogContextNew(cfg->stdioLogD, cfg->logDir,
+                                        QEMU_DRIVER_NAME,
+                                        vm, driver->privileged,
+                                        vm->def->name))) {
         virLastErrorPrefixMessage("%s", _("can't connect to virtlogd"));
         goto cleanup;
     }
