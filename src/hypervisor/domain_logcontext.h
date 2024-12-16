@@ -1,5 +1,5 @@
 /*
- * domain_logcontext.h: QEMU log context
+ * domain_logcontext.h: Domain log context
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,20 +22,20 @@
 #include "qemu_conf.h"
 #include "logging/log_manager.h"
 
-#define QEMU_TYPE_LOG_CONTEXT qemu_log_context_get_type()
-G_DECLARE_FINAL_TYPE(qemuLogContext, qemu_log_context, QEMU, LOG_CONTEXT, GObject);
+#define DOMAIN_TYPE_LOG_CONTEXT domain_log_context_get_type()
+G_DECLARE_FINAL_TYPE(domainLogContext, domain_log_context, DOMAIN, LOG_CONTEXT, GObject);
 
-qemuLogContext *qemuLogContextNew(virQEMUDriver *driver,
-                                  virDomainObj *vm,
-                                  const char *basename);
-int qemuLogContextWrite(qemuLogContext *ctxt,
-                        const char *fmt, ...) G_GNUC_PRINTF(2, 3);
-ssize_t qemuLogContextRead(qemuLogContext *ctxt,
-                           char **msg);
-int qemuLogContextReadFiltered(qemuLogContext *ctxt,
-                               char **msg,
-                               size_t max);
-int qemuLogContextGetWriteFD(qemuLogContext *ctxt);
-void qemuLogContextMarkPosition(qemuLogContext *ctxt);
+domainLogContext *domainLogContextNew(virQEMUDriver *driver,
+                                      virDomainObj *vm,
+                                      const char *basename);
+int domainLogContextWrite(domainLogContext *ctxt,
+                          const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+ssize_t domainLogContextRead(domainLogContext *ctxt,
+                             char **msg);
+int domainLogContextReadFiltered(domainLogContext *ctxt,
+                                 char **msg,
+                                 size_t max);
+int domainLogContextGetWriteFD(domainLogContext *ctxt);
+void domainLogContextMarkPosition(domainLogContext *ctxt);
 
-virLogManager *qemuLogContextGetManager(qemuLogContext *ctxt);
+virLogManager *domainLogContextGetManager(domainLogContext *ctxt);
