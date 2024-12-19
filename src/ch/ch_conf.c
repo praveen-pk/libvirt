@@ -165,6 +165,7 @@ virCHDriverConfigNew(bool privileged)
         configbasedir = virGetUserConfigDirectory();
         cfg->saveDir = g_strdup_printf("%s/ch/save", configbasedir);
     }
+    cfg->stdioLogD = true;
 
     return cfg;
 }
