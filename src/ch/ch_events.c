@@ -92,6 +92,12 @@ static int virCHProcessEvent(virCHMonitor *mon,
         case VIR_CH_EVENT_VMM_STARTING:
         case VIR_CH_EVENT_VM_BOOTING:
         case VIR_CH_EVENT_VM_BOOTED:
+            if (virCHProcessSetupIOThreads(vm) < 0) {
+                VIR_WARN("Failed to setup IO threads for VM (%s) after it booted!",
+                         vm->def->name);
+                ret = -1;
+            }
+            break;
         case VIR_CH_EVENT_VM_REBOOTING:
         case VIR_CH_EVENT_VM_REBOOTED:
         case VIR_CH_EVENT_VM_PAUSING:
@@ -279,7 +285,7 @@ static void virCHEventHandlerLoop(void *data)
         }
     }
 
-    g_clear_pointer(&mon->event_buffer.buffer, g_free);
+    //g_clear_pointer(&mon->event_buffer.buffer, g_free);
     virObjectUnref(vm);
     VIR_DEBUG("%s: Event handler loop thread exiting", vm->def->name);
     return;
