@@ -147,9 +147,8 @@ virCHProcessEvent(virCHMonitor *mon,
  * Returns: 0 on success, -1 on failure
  */
 static int
-virCHProcessEvents(virCHMonitor *mon)
+virCHProcessEvents(virCHMonitor *mon, char *vm_name)
 {
-    virDomainObj *vm = mon->vm;
     char *buf = mon->event_buffer.buffer;
     ssize_t sz = mon->event_buffer.buf_fill_sz;
     virJSONValue *obj = NULL;
@@ -179,13 +178,13 @@ virCHProcessEvents(virCHMonitor *mon)
                 if ((obj = virJSONValueFromString(json_start))) {
                     if (virCHProcessEvent(mon, obj) < 0) {
                         VIR_ERROR(_("%1$s: Failed to process JSON event doc: %2$s"),
-                                  vm->def->name, json_start);
+                                  vm_name, json_start);
                         return -1;
                     }
                     virJSONValueFree(obj);
                 } else {
                     VIR_ERROR(_("%1$s: Invalid JSON event doc: %2$s"),
-                              vm->def->name, json_start);
+                              vm_name, json_start);
                     return -1;
                 }
 
@@ -213,14 +212,13 @@ virCHProcessEvents(virCHMonitor *mon)
 }
 
 static int
-virCHReadProcessEvents(virCHMonitor *mon)
+virCHReadProcessEvents(virCHMonitor *mon, char *vm_name)
 {
     /* Event json string must always terminate with null char.
      * So, reserve one byte for '\0' at the end.
      */
     size_t max_sz = CH_EVENT_BUFFER_SZ - 1;
     char *buf = mon->event_buffer.buffer;
-    virDomainObj *vm = mon->vm;
     bool incomplete = false;
     size_t sz = 0;
     int event_monitor_fd = mon->eventmonitorfd;
@@ -241,16 +239,16 @@ virCHReadProcessEvents(virCHMonitor *mon)
              * or in the system).
              */
             VIR_ERROR(_("%1$s: Failed to read ch events!: %2$s"),
-                      vm->def->name, g_strerror(errno));
+                      vm_name, g_strerror(errno));
             return -1;
         }
 
         sz += ret;
         mon->event_buffer.buf_fill_sz = sz;
 
-        if (virCHProcessEvents(mon) < 0) {
+        if (virCHProcessEvents(mon, vm_name) < 0) {
             VIR_ERROR(_("%1$s: Failed to parse and process events"),
-                      vm->def->name);
+                      vm_name);
             return -1;
         }
 
@@ -260,7 +258,7 @@ virCHReadProcessEvents(virCHMonitor *mon)
             incomplete = false;
         sz = mon->event_buffer.buf_fill_sz;
 
-    } while (virDomainObjIsActive(vm) && (sz < max_sz) && incomplete);
+    } while (virDomainObjIsActive(mon->vm) && (sz < max_sz) && incomplete);
 
     return 0;
 }
@@ -270,25 +268,29 @@ virCHEventHandlerLoop(void *data)
 {
     virCHMonitor *mon = data;
     virDomainObj *vm = NULL;
+    g_autofree char *vm_name = NULL;
 
     /* Obtain a vm reference */
     vm = virObjectRef(mon->vm);
+    vm_name = g_strdup(vm->def->name);
+    virObjectUnref(vm);
 
-    VIR_DEBUG("%s: Event handler loop thread starting", vm->def->name);
+    VIR_DEBUG("%s: Event handler loop thread starting", vm_name);
 
     mon->event_buffer.buffer = g_new0(char, CH_EVENT_BUFFER_SZ);
     mon->event_buffer.buf_fill_sz = 0;
 
+    virObjectRef(mon);
     while (g_atomic_int_get(&mon->event_handler_stop) == 0) {
-        VIR_DEBUG("%s: Reading events from event monitor file", vm->def->name);
-        if (virCHReadProcessEvents(mon) < 0) {
+        VIR_DEBUG("%s: Reading events from event monitor file", vm_name);
+        if (virCHReadProcessEvents(mon, vm_name) < 0) {
             virCHStopEventHandler(mon);
         }
     }
 
     g_clear_pointer(&mon->event_buffer.buffer, g_free);
-    virObjectUnref(vm);
-    VIR_DEBUG("%s: Event handler loop thread exiting", vm->def->name);
+    virObjectUnref(mon);
+    VIR_DEBUG("%s: Event handler loop thread exiting", vm_name);
     return;
 }
 
@@ -308,9 +310,9 @@ virCHStartEventHandler(virCHMonitor *mon)
         virObjectUnref(mon);
         return -1;
     }
-    virObjectUnref(mon);
 
     g_atomic_int_set(&mon->event_handler_stop, 0);
+    virObjectUnref(mon);
     return 0;
 }
 
