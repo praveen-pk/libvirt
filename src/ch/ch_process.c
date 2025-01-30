@@ -469,7 +469,7 @@ virCHProcessSetupVcpus(virDomainObj *vm)
     return 0;
 }
 
-static int
+int
 virCHProcessSetup(virDomainObj *vm)
 {
     virCHDomainObjPrivate *priv = vm->privateData;
