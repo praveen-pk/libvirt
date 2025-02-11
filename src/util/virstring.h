@@ -140,3 +140,4 @@ int virStringParseVersion(unsigned long long *version,
                           bool allowMissing);
 
 void virStringListRemoveDuplicates(char ***list);
+char *virStringFormatHex(uint8_t *buf, size_t len);
