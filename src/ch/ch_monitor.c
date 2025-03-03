@@ -251,6 +251,7 @@ virCHMonitorBuildDiskJson(virJSONValue *disks, virDomainDiskDef *diskdef)
         return -1;
 
     switch (diskdef->src->type) {
+    case VIR_STORAGE_TYPE_BLOCK:
     case VIR_STORAGE_TYPE_FILE:
         if (!diskdef->src->path) {
             virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -274,7 +275,6 @@ virCHMonitorBuildDiskJson(virJSONValue *disks, virDomainDiskDef *diskdef)
 
         break;
     case VIR_STORAGE_TYPE_NONE:
-    case VIR_STORAGE_TYPE_BLOCK:
     case VIR_STORAGE_TYPE_DIR:
     case VIR_STORAGE_TYPE_NETWORK:
     case VIR_STORAGE_TYPE_VOLUME:
