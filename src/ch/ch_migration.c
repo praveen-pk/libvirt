@@ -211,7 +211,6 @@ chDomainMigrationDstPrepare(virConnectPtr dconn,
     virCommand *cmd;
     virCHDomainObjPrivate *priv;
     virCommand *chRemote;
-    virCommand *socat;
     unsigned short port = 0;
     const char *incFormat= "%s:%s:%d";
     g_autofree char *hostname = NULL;
@@ -257,12 +256,6 @@ chDomainMigrationDstPrepare(virConnectPtr dconn,
     virCommandAddArg(cmd,g_strdup_printf("unix:%s",recv_sock_path));
     chRemote = cmd;
 
-    //socat command
-    cmd = virCommandNew("socat");
-    virCommandAddArg(cmd, g_strdup_printf("TCP-LISTEN:%d,reuseaddr", port));
-    virCommandAddArg(cmd, g_strdup_printf("UNIX-CLIENT:%s", recv_sock_path));
-    socat = cmd;
-
     if (virCommandRunAsync(chRemote, NULL) < 0)
         return -1;
 
@@ -272,13 +265,10 @@ chDomainMigrationDstPrepare(virConnectPtr dconn,
             i++;
     }
 
-    if (virCommandRunAsync(socat, NULL) < 0)
-        return -1;
 
     //store cmds, wait for them in finish phase so that they clean up
     priv = CH_DOMAIN_PRIVATE(vm);
     priv->chRemote = chRemote;
-    priv->socat = socat;
 
     virDomainObjEndJob(vm);
     chMigrationCookieFree(mig);
@@ -307,9 +297,7 @@ chDomainMigrationSrcPerform(virCHDriver *driver,
                             unsigned int flags)
 {
     virCommand *cmd;
-    virCommand *socat;
     int sleepAmount = 1;
-    int ret = 0;
     virCHDriverConfig *cfg = virCHDriverGetConfig(driver);
     g_autofree char *send_sock_path = NULL;
 
@@ -326,13 +314,6 @@ chDomainMigrationSrcPerform(virCHDriver *driver,
         return -1;
 
     send_sock_path = g_strdup_printf("%s/%s-migr-send", cfg->stateDir, vm->def->name);
-    cmd = virCommandNew("socat");
-    virCommandAddArg(cmd, g_strdup_printf("UNIX-LISTEN:%s,reuseaddr", send_sock_path));
-    virCommandAddArg(cmd, uri_str);
-    socat = cmd;
-
-    if (virCommandRunAsync(cmd, NULL) < 0)
-        return -1;
 
     while(access(send_sock_path, F_OK) != 0){
             int i = 0;
@@ -346,9 +327,6 @@ chDomainMigrationSrcPerform(virCHDriver *driver,
     virCommandAddArg(cmd, g_strdup_printf("unix:%s", send_sock_path));
 
     if (virCommandRun(cmd, NULL) < 0)
-        return -1;
-
-    if (virCommandWait(socat, &ret) < 0)
         return -1;
 
     virDomainObjEndJob(vm);
@@ -380,7 +358,7 @@ chDomainMigrationDstFinish(virCHDriver *driver,
     if (virDomainObjBeginJob(vm, VIR_JOB_MODIFY) < 0)
         return NULL;
 
-    if (virCommandWait(priv->chRemote, &ret) < 0 || virCommandWait(priv->socat, &ret) < 0)
+    if (virCommandWait(priv->chRemote, &ret) < 0 )
         goto error;
 
     if(virCHProcessFinishStartup(driver, vm, startCPUs, runningReason, pausedReason) < 0)
