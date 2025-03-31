@@ -24,11 +24,13 @@
 #include "virhostdev.h"
 #include "virthread.h"
 #include "ch_capabilities.h"
+#include "configmake.h"
 #include "virebtables.h"
 #include "object_event.h"
 
 #define CH_DRIVER_NAME "CH"
 #define CH_CMD "cloud-hypervisor"
+#define CH_CONFIG_DIR SYSCONFDIR "/libvirt/"
 
 typedef struct _virCHDriver virCHDriver;
 
@@ -110,3 +112,4 @@ virDomainXMLOption *chDomainXMLConfInit(virCHDriver *driver);
 virCHDriverConfig *virCHDriverConfigNew(bool privileged);
 virCHDriverConfig *virCHDriverGetConfig(virCHDriver *driver);
 int chExtractVersion(virCHDriver *driver);
+int virCHLoadDriverConfig(virCHDriverConfig *cfg, const char *filename);
