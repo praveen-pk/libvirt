@@ -22,6 +22,7 @@
 
 #include "configmake.h"
 #include "vircommand.h"
+#include "virconf.h"
 #include "virfile.h"
 #include "virlog.h"
 #include "virobject.h"
@@ -258,5 +259,42 @@ chExtractVersion(virCHDriver *driver)
     }
 
     driver->version = version;
+    return 0;
+}
+
+int
+virCHLoadDriverConfig(virCHDriverConfig *cfg,
+                       const char *filename)
+{
+    g_autoptr(virConf) conf = NULL;
+    g_auto(GStrv) controllers = NULL;
+    size_t i;
+
+    /* Avoid error from non-existent or unreadable file. */
+    if (access(filename, R_OK) == -1)
+        return 0;
+
+    conf = virConfReadFile(filename, 0);
+    if (!conf)
+        return -1;
+
+    if (virConfGetValueStringList(conf, "cgroup_controllers", false,
+                                  &controllers) < 0)
+        return -1;
+
+    if (controllers) {
+        cfg->cgroupControllers = 0;
+        for (i = 0; controllers[i] != NULL; i++) {
+            int ctl;
+            if ((ctl = virCgroupControllerTypeFromString(controllers[i])) < 0) {
+                virReportError(VIR_ERR_CONF_SYNTAX,
+                                _("Unknown cgroup controller '%1$s'"),
+                                controllers[i]);
+                return -1;
+            }
+            cfg->cgroupControllers |= (1 << ctl);
+        }
+    }
+
     return 0;
 }

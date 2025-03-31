@@ -1414,6 +1414,7 @@ chStateInitialize(bool privileged,
 {
     int ret = VIR_DRV_STATE_INIT_ERROR;
     int rv;
+    g_autofree char *driverConf = NULL;
 
     if (root != NULL) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -1463,6 +1464,12 @@ chStateInitialize(bool privileged,
     ch_driver->chCaps = virCHCapsInitCHVersionCaps(ch_driver->version);
 
     ch_driver->privileged = privileged;
+
+    driverConf = g_strdup_printf("%s/ch.conf", CH_CONFIG_DIR);
+    /* Call function to load ch driver configuration information */
+    if (virCHLoadDriverConfig(ch_driver->config, driverConf) < 0)
+        goto cleanup;
+
     ret = VIR_DRV_STATE_INIT_COMPLETE;
 
  cleanup:
