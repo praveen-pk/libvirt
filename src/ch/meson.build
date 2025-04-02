@@ -63,6 +63,8 @@ if conf.has('WITH_CH')
     'name': 'virtchd',
   }
 
+  virt_conf_files += files('ch.conf')
+
   virt_daemon_units += {
     'service': 'virtchd',
     'name': 'Cloud Hypervisor',
