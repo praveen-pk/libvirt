@@ -3434,6 +3434,18 @@ qemuMonitorGetKVMState(qemuMonitor *mon,
     return qemuMonitorJSONGetKVMState(mon, enabled, present);
 }
 
+int
+qemuMonitorGetMSHVState(qemuMonitor *mon,
+                        bool *enabled,
+                        bool *present)
+{
+    VIR_DEBUG("enabled=%p present=%p", enabled, present);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONGetMSHVState(mon, enabled, present);
+}
+
 
 int
 qemuMonitorGetObjectTypes(qemuMonitor *mon,

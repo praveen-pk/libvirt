@@ -451,10 +451,15 @@ qemuMonitorJSONGetCPUModelComparison(qemuMonitor *mon,
 GHashTable *
 qemuMonitorJSONGetCommandLineOptions(qemuMonitor *mon);
 
-int
-qemuMonitorJSONGetKVMState(qemuMonitor *mon,
-                           bool *enabled,
-                           bool *present)
+
+int qemuMonitorJSONGetKVMState(qemuMonitor *mon,
+                               bool *enabled,
+                               bool *present)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+int qemuMonitorJSONGetMSHVState(qemuMonitor *mon,
+                                bool *enabled,
+                                bool *present)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int
