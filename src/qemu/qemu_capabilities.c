@@ -2308,6 +2308,10 @@ virQEMUCapsIsVirtTypeSupported(virQEMUCaps *qemuCaps,
         virQEMUCapsGet(qemuCaps, QEMU_CAPS_KVM))
         return true;
 
+    if (virtType == VIR_DOMAIN_VIRT_HYPERV &&
+        virQEMUCapsGet(qemuCaps, QEMU_CAPS_MSHV))
+        return true;
+
     return false;
 }
 
