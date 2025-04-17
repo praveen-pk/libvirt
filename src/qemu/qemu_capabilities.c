@@ -732,6 +732,7 @@ VIR_ENUM_IMPL(virQEMUCaps,
 
               /* 475 */
               "virtio-scsi.iothread-mapping", /* QEMU_CAPS_VIRTIO_SCSI_IOTHREAD_MAPPING */
+                  "mshv", /* QEMU_CAPS_MSHV */
     );
 
 
