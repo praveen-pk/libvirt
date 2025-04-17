@@ -7321,6 +7321,9 @@ qemuBuildAccelCommandLine(virCommand *cmd,
         virBufferAddLit(&buf, "hvf");
         break;
 
+    case VIR_DOMAIN_VIRT_HYPERV:
+        virBufferAddLit(&buf, "mshv");
+        break;
     case VIR_DOMAIN_VIRT_KQEMU:
     case VIR_DOMAIN_VIRT_XEN:
     case VIR_DOMAIN_VIRT_LXC:
@@ -7328,7 +7331,6 @@ qemuBuildAccelCommandLine(virCommand *cmd,
     case VIR_DOMAIN_VIRT_OPENVZ:
     case VIR_DOMAIN_VIRT_TEST:
     case VIR_DOMAIN_VIRT_VMWARE:
-    case VIR_DOMAIN_VIRT_HYPERV:
     case VIR_DOMAIN_VIRT_VBOX:
     case VIR_DOMAIN_VIRT_PHYP:
     case VIR_DOMAIN_VIRT_PARALLELS:
