@@ -3442,6 +3442,18 @@ virQEMUCapsProbeQMPKVMState(virQEMUCaps *qemuCaps,
     return 0;
 }
 
+static int
+virQEMUCapsProbeQMPMSHVState(virQEMUCaps *qemuCaps,
+                            qemuMonitor *mon G_GNUC_UNUSED)
+{
+
+    if (virFileExists("/dev/mshv")) {
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_MSHV);
+    }
+
+    return 0;
+}
+
 #ifdef __APPLE__
 bool
 virQEMUCapsProbeHVF(virQEMUCaps *qemuCaps)
@@ -5717,6 +5729,9 @@ virQEMUCapsInitQMPMonitor(virQEMUCaps *qemuCaps,
 
     /* Some capabilities may differ depending on KVM state */
     if (virQEMUCapsProbeQMPKVMState(qemuCaps, mon) < 0)
+        return -1;
+
+    if (virQEMUCapsProbeQMPMSHVState(qemuCaps, mon) < 0)
         return -1;
 
     if (virQEMUCapsProbeHVF(qemuCaps))
