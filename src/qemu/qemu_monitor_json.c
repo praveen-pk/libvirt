@@ -5520,9 +5520,10 @@ qemuMonitorJSONGetCommandLineOptions(qemuMonitor *mon)
 }
 
 
-int qemuMonitorJSONGetKVMState(qemuMonitor *mon,
-                               bool *enabled,
-                               bool *present)
+int qemuMonitorJSONGetHypervisorState(qemuMonitor *mon,
+                                      const char *query_cmd,
+                                      bool *enabled,
+                                      bool *present)
 {
     g_autoptr(virJSONValue) cmd = NULL;
     g_autoptr(virJSONValue) reply = NULL;
@@ -5531,7 +5532,7 @@ int qemuMonitorJSONGetKVMState(qemuMonitor *mon,
     /* Safe defaults */
     *enabled = *present = false;
 
-    if (!(cmd = qemuMonitorJSONMakeCommand("query-kvm", NULL)))
+    if (!(cmd = qemuMonitorJSONMakeCommand(query_cmd, NULL)))
         return -1;
 
     if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
@@ -5542,8 +5543,8 @@ int qemuMonitorJSONGetKVMState(qemuMonitor *mon,
 
     if (virJSONValueObjectGetBoolean(data, "enabled", enabled) < 0 ||
         virJSONValueObjectGetBoolean(data, "present", present) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("query-kvm replied unexpected data"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("%1$s replied unexpected data"), query_cmd);
         return -1;
     }
 

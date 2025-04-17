@@ -3423,15 +3423,16 @@ qemuMonitorGetCommandLineOptions(qemuMonitor *mon)
 
 
 int
-qemuMonitorGetKVMState(qemuMonitor *mon,
-                       bool *enabled,
-                       bool *present)
+qemuMonitorGetHypervisorState(qemuMonitor *mon,
+                              const char *query_cmd,
+                              bool *enabled,
+                              bool *present)
 {
     VIR_DEBUG("enabled=%p present=%p", enabled, present);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONGetKVMState(mon, enabled, present);
+    return qemuMonitorJSONGetHypervisorState(mon, query_cmd, enabled, present);
 }
 
 

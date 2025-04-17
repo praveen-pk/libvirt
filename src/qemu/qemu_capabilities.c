@@ -3473,17 +3473,31 @@ virQEMUCapsProbeQMPTPM(virQEMUCaps *qemuCaps,
 
 
 static int
-virQEMUCapsProbeQMPKVMState(virQEMUCaps *qemuCaps,
-                            qemuMonitor *mon)
+virQEMUCapsProbeQMPHypervisorState(virQEMUCaps *qemuCaps,
+                                   qemuMonitor *mon,
+                                   virQEMUCapsFlags flag)
 {
     bool enabled = false;
     bool present = false;
 
-    if (qemuMonitorGetKVMState(mon, &enabled, &present) < 0)
-        return -1;
+    if (flag == QEMU_CAPS_KVM) {
+        if (qemuMonitorGetHypervisorState(mon, "query-kvm",
+                                          &enabled, &present) < 0)
+            return -1;
+        if (present && enabled)
+            virQEMUCapsSet(qemuCaps, QEMU_CAPS_KVM);
+    } else if (flag == QEMU_CAPS_MSHV) {
 
-    if (present && enabled)
-        virQEMUCapsSet(qemuCaps, QEMU_CAPS_KVM);
+        if (qemuMonitorGetHypervisorState(mon, "query-mshv",
+                                          &enabled, &present) < 0)
+            return -1;
+        if (present && enabled)
+            virQEMUCapsSet(qemuCaps, QEMU_CAPS_MSHV);
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                _("Invalid Hypervisor type specified for qemu"));
+        return -1;
+    }
 
     return 0;
 }
@@ -5792,7 +5806,10 @@ virQEMUCapsInitQMPMonitor(virQEMUCaps *qemuCaps,
         return -1;
 
     /* Some capabilities may differ depending on KVM state */
-    if (virQEMUCapsProbeQMPKVMState(qemuCaps, mon) < 0)
+    if (virQEMUCapsProbeQMPHypervisorState(qemuCaps, mon, QEMU_CAPS_KVM) < 0)
+        return -1;
+
+    if (virQEMUCapsProbeQMPHypervisorState(qemuCaps, mon, QEMU_CAPS_MSHV) < 0)
         return -1;
 
     if (virQEMUCapsProbeHVF(qemuCaps))

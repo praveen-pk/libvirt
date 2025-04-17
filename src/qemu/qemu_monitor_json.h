@@ -451,11 +451,11 @@ qemuMonitorJSONGetCPUModelComparison(qemuMonitor *mon,
 GHashTable *
 qemuMonitorJSONGetCommandLineOptions(qemuMonitor *mon);
 
-int
-qemuMonitorJSONGetKVMState(qemuMonitor *mon,
-                           bool *enabled,
-                           bool *present)
-    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+int qemuMonitorJSONGetHypervisorState(qemuMonitor *mon,
+                                      const char *query_cmd,
+                                      bool *enabled,
+                                      bool *present)
+    ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 
 int
 qemuMonitorJSONGetObjectTypes(qemuMonitor *mon,

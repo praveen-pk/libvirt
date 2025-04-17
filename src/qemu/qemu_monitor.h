@@ -1220,9 +1220,11 @@ qemuMonitorCPUModelInfoCopy(const qemuMonitorCPUModelInfo *orig);
 
 GHashTable *qemuMonitorGetCommandLineOptions(qemuMonitor *mon);
 
-int qemuMonitorGetKVMState(qemuMonitor *mon,
-                           bool *enabled,
-                           bool *present);
+int
+qemuMonitorGetHypervisorState(qemuMonitor *mon,
+                              const char *query_cmd,
+                              bool *enabled,
+                              bool *present);
 
 int qemuMonitorGetObjectTypes(qemuMonitor *mon,
                               char ***types);
