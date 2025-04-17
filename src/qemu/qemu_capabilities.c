@@ -3488,6 +3488,22 @@ virQEMUCapsProbeQMPKVMState(virQEMUCaps *qemuCaps,
     return 0;
 }
 
+static int
+virQEMUCapsProbeQMPMSHVState(virQEMUCaps *qemuCaps,
+                            qemuMonitor *mon)
+{
+    bool enabled = false;
+    bool present = false;
+
+    if (qemuMonitorGetMSHVState(mon, &enabled, &present) < 0)
+        return -1;
+
+    if (present && enabled)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_MSHV);
+
+    return 0;
+}
+
 #ifdef __APPLE__
 bool
 virQEMUCapsProbeHVF(virQEMUCaps *qemuCaps)
@@ -5794,6 +5810,11 @@ virQEMUCapsInitQMPMonitor(virQEMUCaps *qemuCaps,
     /* Some capabilities may differ depending on KVM state */
     if (virQEMUCapsProbeQMPKVMState(qemuCaps, mon) < 0)
         return -1;
+
+    if (qemuCaps->arch == VIR_ARCH_X86_64 && qemuCaps->version >= 10000092) {
+        if (virQEMUCapsProbeQMPMSHVState(qemuCaps, mon) < 0)
+            return -1;
+    }
 
     if (virQEMUCapsProbeHVF(qemuCaps))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_HVF);
