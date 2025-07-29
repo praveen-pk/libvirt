@@ -2062,6 +2062,7 @@ virQEMUCaps *virQEMUCapsNewCopy(virQEMUCaps *qemuCaps)
     virQEMUCapsAccelCopy(&ret->kvm, &qemuCaps->kvm);
     virQEMUCapsAccelCopy(&ret->hvf, &qemuCaps->hvf);
     virQEMUCapsAccelCopy(&ret->tcg, &qemuCaps->tcg);
+    virQEMUCapsAccelCopy(&ret->mshv, &qemuCaps->mshv);
 
     ret->gicCapabilities = g_new0(virGICCapability, qemuCaps->ngicCapabilities);
     ret->ngicCapabilities = qemuCaps->ngicCapabilities;
@@ -2122,6 +2123,7 @@ void virQEMUCapsDispose(void *obj)
     virQEMUCapsAccelClear(&qemuCaps->kvm);
     virQEMUCapsAccelClear(&qemuCaps->hvf);
     virQEMUCapsAccelClear(&qemuCaps->tcg);
+    virQEMUCapsAccelClear(&qemuCaps->mshv);
 }
 
 void
@@ -2913,6 +2915,7 @@ virQEMUCapsHasMachines(virQEMUCaps *qemuCaps)
 
     return !!qemuCaps->kvm.nmachineTypes ||
            !!qemuCaps->hvf.nmachineTypes ||
+           !!qemuCaps->mshv.nmachineTypes ||
            !!qemuCaps->tcg.nmachineTypes;
 }
 
