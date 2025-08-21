@@ -432,6 +432,7 @@
           <value>openvz</value>
           <value>test</value>
           <value>hvf</value>
+          <value>hyperv</value>
         </choice>
       </attribute>
 
