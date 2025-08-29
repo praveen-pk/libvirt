@@ -67,6 +67,11 @@ Known test variants
   Variant of the test data captured on hosts supporting INTEL TDX security
   framework.
 
+``+mshv``
+
+  Variant of the test data captured on hosts supporting mshv (Microsoft
+  Hypervisor) accelerator with qemu.
+
 Usage in tests
 ==============
 
