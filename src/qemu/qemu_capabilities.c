@@ -746,6 +746,7 @@ VIR_ENUM_IMPL(virQEMUCaps,
 
               /* 485 */
               "acpi-generic-initiator", /* QEMU_CAPS_ACPI_GENERIC_INITIATOR */
+              "query-accelerators", /* QEMU_CAPS_QUERY_ACCELERATORS */
     );
 
 
@@ -1261,6 +1262,7 @@ struct virQEMUCapsStringFlags virQEMUCapsCommands[] = {
     { "display-reload", QEMU_CAPS_DISPLAY_RELOAD },
     { "blockdev-set-active", QEMU_CAPS_BLOCKDEV_SET_ACTIVE },
     { "qom-list-get", QEMU_CAPS_QOM_LIST_GET },
+    { "query-accelerators", QEMU_CAPS_QUERY_ACCELERATORS },
 };
 
 struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
@@ -3455,6 +3457,30 @@ virQEMUCapsProbeQMPKVMState(virQEMUCaps *qemuCaps,
         return -1;
 
     if (present && enabled)
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_KVM);
+
+    return 0;
+}
+
+static int
+virQEMUCapsProbeAccels(virQEMUCaps *qemuCaps,
+                       qemuMonitor *mon)
+{
+    g_autofree char *enabled = NULL;
+    g_auto(GStrv) present = NULL;
+
+    if (qemuMonitorGetAccelerators(mon, &enabled, &present) < 0)
+        return -1;
+
+    if (!enabled) {
+        return 0;
+    }
+
+    if (STREQ(enabled, "tcg"))
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_TCG);
+    else if (STREQ(enabled, "hvf"))
+        virQEMUCapsSet(qemuCaps, QEMU_CAPS_HVF);
+    else if (STREQ(enabled, "kvm"))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_KVM);
 
     return 0;
@@ -5777,12 +5803,16 @@ virQEMUCapsInitQMPMonitor(virQEMUCaps *qemuCaps,
     if (virQEMUCapsProbeQMPSchemaCapabilities(qemuCaps, mon) < 0)
         return -1;
 
-    /* Some capabilities may differ depending on KVM state */
-    if (virQEMUCapsProbeQMPKVMState(qemuCaps, mon) < 0)
-        return -1;
-
-    if (virQEMUCapsProbeHVF(qemuCaps))
+    if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_QUERY_ACCELERATORS)) {
+        if (virQEMUCapsProbeAccels(qemuCaps, mon) < 0)
+            return -1;
+    } else {
+        /* Some capabilities may differ depending on KVM state */
+        if (virQEMUCapsProbeQMPKVMState(qemuCaps, mon) < 0)
+            return -1;
+        if (virQEMUCapsProbeHVF(qemuCaps))
         virQEMUCapsSet(qemuCaps, QEMU_CAPS_HVF);
+    }
 
     type = virQEMUCapsGetVirtType(qemuCaps);
     accel = virQEMUCapsGetAccel(qemuCaps, type);

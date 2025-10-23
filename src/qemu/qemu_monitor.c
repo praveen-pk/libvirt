@@ -3443,6 +3443,18 @@ qemuMonitorGetKVMState(qemuMonitor *mon,
     return qemuMonitorJSONGetKVMState(mon, enabled, present);
 }
 
+int
+qemuMonitorGetAccelerators(qemuMonitor *mon,
+                            char **enabled,
+                            char ***present)
+{
+    VIR_DEBUG("enabled=%p present=%p", enabled, present);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJsonGetAccelerators(mon, enabled, present);
+}
+
 
 int
 qemuMonitorGetObjectTypes(qemuMonitor *mon,

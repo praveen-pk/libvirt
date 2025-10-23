@@ -1430,6 +1430,11 @@ qemuMonitorGetKVMState(qemuMonitor *mon,
                        bool *present);
 
 int
+qemuMonitorGetAccelerators(qemuMonitor *mon,
+                            char **enabled,
+                            char ***present);
+
+int
 qemuMonitorGetObjectTypes(qemuMonitor *mon,
                           char ***types);
 

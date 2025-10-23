@@ -452,6 +452,12 @@ qemuMonitorJSONGetKVMState(qemuMonitor *mon,
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
 int
+qemuMonitorJsonGetAccelerators(qemuMonitor *mon,
+                               char **enabled,
+                               char ***present)
+     ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+int
 qemuMonitorJSONGetObjectTypes(qemuMonitor *mon,
                               char ***types)
     ATTRIBUTE_NONNULL(2);
