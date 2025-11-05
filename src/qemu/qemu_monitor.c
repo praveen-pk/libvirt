@@ -3446,6 +3446,15 @@ qemuMonitorGetKVMState(qemuMonitor *mon,
     return qemuMonitorJSONGetKVMState(mon, enabled, present);
 }
 
+int
+qemuMonitorGetAccelerators(qemuMonitor *mon,
+                           char **enabled)
+{
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONGetAccelerators(mon, enabled);
+}
+
 
 int
 qemuMonitorGetObjectTypes(qemuMonitor *mon,

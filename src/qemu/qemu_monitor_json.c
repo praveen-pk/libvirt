@@ -5675,6 +5675,29 @@ qemuMonitorJSONGetKVMState(qemuMonitor *mon,
     return 0;
 }
 
+int
+qemuMonitorJSONGetAccelerators(qemuMonitor *mon, char **enabled)
+{
+    g_autoptr(virJSONValue) cmd = NULL;
+    g_autoptr(virJSONValue) reply = NULL;
+    virJSONValue *data;
+
+    *enabled = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-accelerators", NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        return -1;
+
+    if (!(data = qemuMonitorJSONGetReply(cmd, reply, VIR_JSON_TYPE_OBJECT)))
+        return -1;
+
+    *enabled = g_strdup(virJSONValueObjectGetString(data, "enabled"));
+
+    return 0;
+}
+
 
 int
 qemuMonitorJSONGetObjectTypes(qemuMonitor *mon,
